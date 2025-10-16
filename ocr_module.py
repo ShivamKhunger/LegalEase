@@ -11,8 +11,8 @@ def extract_text_from_document(uploaded_file, language='auto'):
     Extracts text from an uploaded PDF or image file using OCR.
     Handles script detection and provides status updates via Streamlit.
     """
-    # User's specific path for the Tesseract executable.
-    pytesseract.pytesseract.tesseract_cmd = r'D:\teserract\tesseract.exe'
+    # NOTE: The hardcoded path to tesseract.exe has been REMOVED.
+    # The system will now find it automatically on both local and deployed environments.
 
     if uploaded_file is None:
         return "", "eng"
@@ -40,26 +40,23 @@ def extract_text_from_document(uploaded_file, language='auto'):
     final_lang_code = language
     if language == 'auto':
         try:
-            with st.spinner("Detecting script..."):
-                osd_data = pytesseract.image_to_osd(images[0])
-                script_match = re.search(r'Script: ([^\n]+)', osd_data)
-                if script_match:
-                    detected_script = script_match.group(1).strip()
-                    final_lang_code = SCRIPT_TO_LANG_CODE.get(detected_script, 'eng')
-                    st.sidebar.success(f"Detected: {detected_script}\nUsing: {final_lang_code.upper()}")
-                else:
-                    st.sidebar.warning("Could not determine script. Defaulting to English.")
-                    final_lang_code = 'eng'
+            osd_data = pytesseract.image_to_osd(images[0])
+            script_match = re.search(r'Script: ([^\n]+)', osd_data)
+            if script_match:
+                detected_script = script_match.group(1).strip()
+                final_lang_code = SCRIPT_TO_LANG_CODE.get(detected_script, 'eng')
+                st.sidebar.success(f"Detected: {detected_script} | Using: {final_lang_code.upper()}")
+            else:
+                st.sidebar.warning("Could not determine script. Defaulting to English.")
+                final_lang_code = 'eng'
         except Exception as osd_error:
             st.sidebar.error(f"Script detection failed. Defaulting to English.")
             final_lang_code = 'eng'
     
     extracted_text = ""
     try:
-        with st.spinner(f"Extracting text using {final_lang_code.upper()} model..."):
-            for image in images:
-                extracted_text += pytesseract.image_to_string(image, lang=final_lang_code) + "\n\n"
-        st.success("Text extraction successful!")
+        for image in images:
+            extracted_text += pytesseract.image_to_string(image, lang=final_lang_code) + "\n\n"
         return extracted_text, final_lang_code
     except Exception as e:
         st.error(f"Text extraction failed. Ensure the Tesseract language pack ('{final_lang_code}') is installed.")
