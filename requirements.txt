@@ -1,18 +1,11 @@
 streamlit
-pytesseract
 Pillow
+pytesseract
 pdf2image
-opencv-python
-numpy
-langdetect
-googletrans==4.0.0-rc1
-google-generativeai
-faiss-cpu
+torch
+transformers
+sentencepiece
+groq
 python-dotenv
-
-# Pinned versions to resolve langchain conflicts and network issues
-httpx
-httpcore
-langchain
-langchain-community
-langchain-google-genai
+duckduckgo_search
+ddgs
