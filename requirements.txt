@@ -2,10 +2,6 @@ streamlit
 Pillow
 pytesseract
 pdf2image
-torch
-transformers
-sentencepiece
 groq
 python-dotenv
-duckduckgo_search
-ddgs
+langdetect
