@@ -2,7 +2,7 @@
 
 LegalEase is an intelligent, multilingual web application designed to help users understand complex legal documents. By leveraging powerful AI models, it can extract text, translate, summarize, and provide critical insights into any uploaded document, making legal information more accessible and transparent.
 
-
+## Try it here: https://legaleaseforindia.streamlit.app/
 
 ---
 
