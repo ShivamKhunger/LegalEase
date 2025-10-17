@@ -3,62 +3,87 @@ from PIL import Image
 import pytesseract
 from pdf2image import convert_from_bytes
 import io
+from langdetect import detect, LangDetectException
 import re
-from utils import SCRIPT_TO_LANG_CODE
+from utils import LANGUAGE_OPTIONS
+
+def clean_extracted_text(text):
+    """
+    Intelligently cleans raw OCR output.
+    """
+    if not text: return ""
+    lines = text.split('\n')
+    cleaned_lines = []
+    for line in lines:
+        stripped_line = line.strip()
+        if not stripped_line: continue
+        alpha_chars = sum(1 for char in stripped_line if char.isalpha())
+        total_chars = len(stripped_line)
+        if total_chars > 10 and (alpha_chars / total_chars) < 0.4: continue
+        cleaned_lines.append(stripped_line)
+    cleaned_text = "\n".join(cleaned_lines)
+    return re.sub(r'\n\s*\n', '\n\n', cleaned_text).strip()
 
 def extract_text_from_document(uploaded_file, language='auto'):
     """
-    Extracts text from an uploaded PDF or image file using OCR.
-    Handles script detection and provides status updates via Streamlit.
+    PERMANENT FIX: Implements a fast, accurate, two-pass hybrid OCR strategy.
     """
-    # NOTE: The hardcoded path to tesseract.exe has been REMOVED.
-    # The system will now find it automatically on both local and deployed environments.
-
-    if uploaded_file is None:
-        return "", "eng"
-
-    file_extension = uploaded_file.name.split('.')[-1].lower()
+    if uploaded_file is None: return "", "en"
+    
     file_bytes = uploaded_file.getvalue()
     images = []
-
     try:
-        if file_extension == 'pdf':
+        if uploaded_file.name.lower().endswith('.pdf'):
             images.extend(convert_from_bytes(file_bytes))
-        elif file_extension in ['png', 'jpg', 'jpeg', 'bmp', 'tiff']:
-            images.append(Image.open(io.BytesIO(file_bytes)))
         else:
-            st.error(f"Unsupported file format: {file_extension}")
-            return "", "eng"
+            images.append(Image.open(io.BytesIO(file_bytes)))
     except Exception as img_err:
-        st.error(f"Could not read or process the file. Error: {img_err}")
-        return "", "eng"
+        st.error(f"File could not be read or processed. Error: {img_err}"); return "", "en"
 
     if not images:
-        st.error("Could not convert the document to images for processing.")
-        return "", "eng"
+        st.error("Could not convert the document into images for processing."); return "", "en"
 
-    final_lang_code = language
-    if language == 'auto':
-        try:
-            osd_data = pytesseract.image_to_osd(images[0])
-            script_match = re.search(r'Script: ([^\n]+)', osd_data)
-            if script_match:
-                detected_script = script_match.group(1).strip()
-                final_lang_code = SCRIPT_TO_LANG_CODE.get(detected_script, 'eng')
-                st.sidebar.success(f"Detected: {detected_script} | Using: {final_lang_code.upper()}")
-            else:
-                st.sidebar.warning("Could not determine script. Defaulting to English.")
-                final_lang_code = 'eng'
-        except Exception as osd_error:
-            st.sidebar.error(f"Script detection failed. Defaulting to English.")
-            final_lang_code = 'eng'
-    
-    extracted_text = ""
     try:
-        for image in images:
-            extracted_text += pytesseract.image_to_string(image, lang=final_lang_code) + "\n\n"
-        return extracted_text, final_lang_code
+        initial_scan_langs = 'eng+hin+pan'
+        sample_text = ""
+        with st.spinner("Performing initial scan..."):
+            for image in images:
+                sample_text += pytesseract.image_to_string(image, lang=initial_scan_langs) + "\n"
+
+        if not sample_text.strip():
+            st.warning("Could not extract any text during the initial scan.")
+            return "", "en"
+
+        ocr_lang_code = 'eng'
+        if language == 'auto':
+            try:
+                with st.spinner("Detecting language..."):
+                    cleaned_sample = clean_extracted_text(sample_text)
+                    if cleaned_sample:
+                        detected_lang = detect(cleaned_sample)
+                        ocr_lang_code = next((tess_code for name, tess_code in LANGUAGE_OPTIONS.items() if tess_code.startswith(detected_lang)), 'eng')
+                        st.sidebar.success(f"Detected Language: {ocr_lang_code.upper()}")
+                    else:
+                        st.sidebar.warning("Could not identify language. Defaulting to English.")
+            except LangDetectException:
+                st.sidebar.warning("Could not reliably detect language. Defaulting to English.")
+        else:
+            ocr_lang_code = language
+
+        final_text = ""
+        with st.spinner(f"Performing high-accuracy scan with {ocr_lang_code.upper()} model..."):
+            for image in images:
+                final_text += pytesseract.image_to_string(image, lang=ocr_lang_code) + "\n\n"
+
+        with st.spinner("Sanitizing final text..."):
+            cleaned_text = clean_extracted_text(final_text)
+
+        if not cleaned_text:
+            st.warning("No readable text could be extracted after final cleaning.")
+            return "", "en"
+
+        return cleaned_text, ocr_lang_code[:2]
+
     except Exception as e:
-        st.error(f"Text extraction failed. Ensure the Tesseract language pack ('{final_lang_code}') is installed.")
-        st.error(f"See setup guide for details. Error: {e}")
-        return "", final_lang_code
+        st.error(f"A critical error occurred during text extraction: {e}")
+        return "", "en"
