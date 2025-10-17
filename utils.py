@@ -1,36 +1,4 @@
-# This file stores shared constants and mappings to keep the other modules clean.
 
-# Mapping of detected scripts from Tesseract OSD to language codes Tesseract uses.
-SCRIPT_TO_LANG_CODE = {
-    'Latin': 'eng',
-    'Devanagari': 'hin',
-    'Bengali': 'ben',
-    'Tamil': 'tam',
-    'Telugu': 'tel',
-    'Kannada': 'kan',
-    'Malayalam': 'mal',
-    'Gurmukhi': 'pan',
-    'Gujarati': 'guj',
-    'Oriya': 'ori',
-    'Arabic': 'urd',
-}
-
-# Mapping from Tesseract language codes to the specific codes required by the mBART translation model.
-TESSERACT_TO_MBART = {
-    "eng": "en_XX",
-    "hin": "hi_IN",
-    "ben": "bn_IN",
-    "guj": "gu_IN",
-    "kan": "kn_IN", 
-    "mal": "ml_IN",
-    "ori": "or_IN", 
-    "pan": "pa_IN", 
-    "tam": "ta_IN",
-    "tel": "te_IN",
-    "urd": "ur_PK"
-}
-
-# Language options for the Streamlit UI dropdown.
 LANGUAGE_OPTIONS = {
     "Auto-Detect": "auto",
     "English": "eng",
@@ -44,4 +12,25 @@ LANGUAGE_OPTIONS = {
     "Tamil": "tam",
     "Telugu": "tel",
     "Urdu": "urd",
+    "French": "fra",
+    "Spanish": "spa",
+    "German": "deu",
+    "Portuguese": "por",
+}
+
+TARGET_LANGUAGES = {
+    "English": "English",
+    "Hindi": "Hindi",
+    "Spanish": "Spanish", 
+    "French": "French",
+    "German": "German",
+    "Portuguese": "Portuguese",
+    "Italian": "Italian",
+    "Japanese": "Japanese",
+    "Chinese (Simplified)": "Chinese (Simplified)",
+    "Marathi": "Marathi",
+    "Bengali": "Bengali",
+    "Tamil": "Tamil",
+    "Telugu": "Telugu",
+    "Punjabi": "Punjabi",
 }
